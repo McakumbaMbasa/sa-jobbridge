@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SA JobBridge</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,sans-serif;background:#f5f5f5;color:#1a1a1a}
+  header{background:#185FA5;color:#fff;padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between}
+  header h1{font-size:1.4rem;font-weight:600}
+  header span{font-size:.85rem;opacity:.85}
+  .stats-bar{background:#fff;display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid #e0e0e0}
+  .stat{text-align:center;padding:.9rem;border-right:1px solid #e0e0e0}
+  .stat:last-child{border-right:none}
+  .stat .num{font-size:1.5rem;font-weight:700;color:#185FA5}
+  .stat .lbl{font-size:.75rem;color:#666;margin-top:2px}
+  .tabs{background:#fff;display:flex;border-bottom:2px solid #e0e0e0;padding:0 2rem}
+  .tab{padding:.75rem 1.25rem;font-size:.9rem;cursor:pointer;border:none;background:none;color:#666;border-bottom:3px solid transparent;margin-bottom:-2px}
+  .tab.active{color:#185FA5;border-bottom-color:#185FA5;font-weight:600}
+  .content{max-width:900px;margin:2rem auto;padding:0 1rem}
+  .section{display:none}
+  .section.active{display:block}
+  .card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:1.25rem;margin-bottom:1rem}
+  .card h2{font-size:1rem;font-weight:600;margin-bottom:.4rem}
+  .card p{font-size:.85rem;color:#555}
+  label{display:block;font-size:.82rem;color:#555;margin-bottom:4px;margin-top:10px}
+  input,select,textarea{width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:.9rem;background:#fff}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:#185FA5}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btn{padding:10px 20px;border-radius:6px;font-size:.9rem;font-weight:600;cursor:pointer;border:1px solid #ccc;background:#fff}
+  .btn-primary{background:#185FA5;color:#fff;border-color:#185FA5;width:100%;margin-top:12px}
+  .btn-primary:hover{background:#0f4a8a}
+  .tag{display:inline-block;font-size:.75rem;padding:3px 8px;border-radius:20px;margin:2px}
+  .tag-blue{background:#ddeeff;color:#0c447c}
+  .tag-green{background:#e5f5e0;color:#2d6a2d}
+  .tag-amber{background:#fff3cd;color:#856404}
+  .tag-gray{background:#f0f0f0;color:#555;cursor:pointer}
+  .tag-selected{background:#185FA5;color:#fff;cursor:pointer}
+  .result-job{background:#f9f9f9;border:1px solid #ddd;border-radius:6px;padding:12px;margin-bottom:10px}
+  .result-job h3{font-size:.95rem;font-weight:600}
+  .result-job .meta{font-size:.8rem;color:#777;margin:3px 0}
+  .score-bar{height:6px;background:#e0e0e0;border-radius:3px;margin-top:6px}
+  .score-fill{height:100%;border-radius:3px;background:#1D9E75}
+  .score-label{font-size:.75rem;color:#2d6a2d;float:right;margin-top:-4px}
+  .prov-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:.85rem}
+  .prov-bar-wrap{flex:1;height:8px;background:#e0e0e0;border-radius:4px;overflow:hidden}
+  .prov-bar{height:100%;border-radius:4px;background:#185FA5}
+  .pct{font-size:.8rem;color:#666;min-width:36px;text-align:right}
+  .alert-success{background:#e5f5e0;border-left:4px solid #1D9E75;padding:12px;border-radius:6px;font-size:.9rem;color:#2d6a2d}
+  .empty{text-align:center;padding:2rem;color:#999;font-size:.9rem}
+  #loading{display:none;text-align:center;color:#185FA5;padding:1rem}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>SA JobBridge</h1>
+    <span>Tackling unemployment across South Africa</span>
+  </div>
+  <span style="background:rgba(255,255,255,.2);padding:4px 12px;border-radius:20px;font-size:.8rem">Free platform</span>
+</header>
+
+<div class="stats-bar" id="stats-bar">
+  <div class="stat"><div class="num">32.9%</div><div class="lbl">SA unemployment rate</div></div>
+  <div class="stat"><div class="num" id="s-jobs">...</div><div class="lbl">jobs listed</div></div>
+  <div class="stat"><div class="num" id="s-seekers">...</div><div class="lbl">job seekers</div></div>
+  <div class="stat"><div class="num" id="s-training">...</div><div class="lbl">training programs</div></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('match',this)">Job Matcher</button>
+  <button class="tab" onclick="showTab('skills',this)">Skills Builder</button>
+  <button class="tab" onclick="showTab('post',this)">Post a Job</button>
+  <button class="tab" onclick="showTab('register',this)">Register as Seeker</button>
+  <button class="tab" onclick="showTab('overview',this)">SA Overview</button>
+</div>
+
+<div class="content">
+
+  <!-- JOB MATCHER -->
+  <div id="match" class="section active">
+    <div class="card">
+      <h2>Find work that matches your profile</h2>
+      <p>Select your skills and location to see the best opportunities for you.</p>
+
+      <div class="row">
+        <div>
+          <label>Your province</label>
+          <select id="m-prov">
+            <option value="">All provinces</option>
+            <option>Gauteng</option><option>Western Cape</option><option>KwaZulu-Natal</option>
+            <option>Eastern Cape</option><option>Limpopo</option><option>Mpumalanga</option>
+            <option>North West</option><option>Free State</option><option>Northern Cape</option>
+          </select>
+        </div>
+        <div>
+          <label>Education level</label>
+          <select id="m-edu">
+            <option value="">Any education</option>
+            <option>No matric required</option><option>Matric / Grade 12</option>
+            <option>Certificate / Diploma</option><option>Degree</option><option>Postgraduate</option>
+          </select>
+        </div>
+      </div>
+
+      <label>Your skills — click to select</label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 12px" id="skill-tags">
+        <span class="tag tag-gray" onclick="toggleSkill(this,'driving')">Driving / Logistics</span>
+        <span class="tag tag-gray" onclick="toggleSkill(this,'construction')">Construction</span>
+        <span class="tag tag-gray" onclick="toggleSkill(this,'retail')">Retail / Cashier</span>
+        <span class="tag tag-gray" onclick="toggleSkill(this,'admin')">Admin / Office</span>
+        <span class="tag tag-gray" onclick="toggleSkill(this,'it')">IT / Computers</span>
+        <span class="tag tag-gray" onclick="toggleSkill(this,'security')">Security</span>
+        <span class="tag tag-gray" onclick="toggleSkill(this,'cleaning')">Cleaning</span>
+        <span class="tag tag-gray" onclick="toggleSkill(this,'cooking')">Cooking / Catering</span>
+        <span class="tag tag-gray" onclick="toggleSkill(this,'farming')">Agriculture / Farming</span>
+        <span class="tag tag-gray" onclick="toggleSkill(this,'care')">Caregiving / Health</span>
+        <span class="tag tag-gray" onclick="toggleSkill(this,'teaching')">Teaching / ECD</span>
+        <span class="tag tag-gray" onclick="toggleSkill(this,'sales')">Sales / Marketing</span>
+      </div>
+
+      <label>Work type preference</label>
+      <select id="m-type">
+        <option value="Any">Any</option>
+        <option>Full-time</option><option>Part-time</option><option>Casual/Contract</option>
+      </select>
+
+      <button class="btn btn-primary" onclick="findJobs()">Find matching jobs</button>
+    </div>
+
+    <div id="loading">Searching...</div>
+    <div id="job-results"></div>
+  </div>
+
+  <!-- SKILLS BUILDER -->
+  <div id="skills" class="section">
+    <div id="training-list"><p class="empty">Loading training programs...</p></div>
+  </div>
+
+  <!-- POST A JOB -->
+  <div id="post" class="section">
+    <div class="card">
+      <h2>Post a job listing — free for SMEs & NGOs</h2>
+      <label>Company / Organisation name</label>
+      <input id="p-company" placeholder="e.g. Shoprite, City of Cape Town, local NGO"/>
+      <div class="row">
+        <div><label>Job title</label><input id="p-title" placeholder="e.g. Warehouse assistant"/></div>
+        <div>
+          <label>Province</label>
+          <select id="p-prov">
+            <option value="">Select province...</option>
+            <option>Gauteng</option><option>Western Cape</option><option>KwaZulu-Natal</option>
+            <option>Eastern Cape</option><option>Limpopo</option><option>Mpumalanga</option>
+            <option>North West</option><option>Free State</option><option>Northern Cape</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Sector</label>
+          <select id="p-sector">
+            <option>Retail</option><option>Construction</option><option>Agriculture</option>
+            <option>IT</option><option>Healthcare</option><option>Hospitality</option>
+            <option>Transport</option><option>Education</option><option>Security</option>
+            <option>Cleaning</option><option>Finance</option><option>Energy</option>
+          </select>
+        </div>
+        <div>
+          <label>Job type</label>
+          <select id="p-type">
+            <option>Full-time</option><option>Part-time</option><option>Casual/Contract</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div><label>Min salary (ZAR/month)</label><input id="p-smin" type="number" placeholder="e.g. 4000"/></div>
+        <div><label>Max salary (ZAR/month)</label><input id="p-smax" type="number" placeholder="e.g. 6000"/></div>
+      </div>
+      <label>Minimum education required</label>
+      <select id="p-edu">
+        <option>No matric required</option><option>Matric / Grade 12</option>
+        <option>Certificate / Diploma</option><option>Degree</option>
+      </select>
+      <label>Job description & how to apply</label>
+      <textarea id="p-desc" rows="3" placeholder="Describe the role, hours, and how to apply..."></textarea>
+      <label>Contact email or phone</label>
+      <input id="p-contact" placeholder="e.g. hr@company.co.za"/>
+      <button class="btn btn-primary" onclick="postJob()">Post this job for free</button>
+      <div id="post-result" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <!-- REGISTER SEEKER -->
+  <div id="register" class="section">
+    <div class="card">
+      <h2>Create your job seeker profile</h2>
+      <p>Register so employers and training providers can find you.</p>
+      <label>Full name</label><input id="r-name" placeholder="Your full name"/>
+      <div class="row">
+        <div><label>Email</label><input id="r-email" type="email" placeholder="your@email.com"/></div>
+        <div><label>Phone</label><input id="r-phone" placeholder="e.g. 082 000 0000"/></div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Province</label>
+          <select id="r-prov">
+            <option value="">Select...</option>
+            <option>Gauteng</option><option>Western Cape</option><option>KwaZulu-Natal</option>
+            <option>Eastern Cape</option><option>Limpopo</option><option>Mpumalanga</option>
+            <option>North West</option><option>Free State</option><option>Northern Cape</option>
+          </select>
+        </div>
+        <div>
+          <label>Education</label>
+          <select id="r-edu">
+            <option value="">Select...</option>
+            <option>No matric</option><option>Matric / Grade 12</option>
+            <option>Certificate / Diploma</option><option>Degree</option>
+          </select>
+        </div>
+      </div>
+      <label>Skills (comma-separated)</label>
+      <input id="r-skills" placeholder="e.g. driving, retail, admin"/>
+      <button class="btn btn-primary" onclick="registerSeeker()">Register now</button>
+      <div id="reg-result" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div id="overview" class="section">
+    <div class="card">
+      <h2>Unemployment by province (2024 estimates)</h2>
+      <div id="prov-bars" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <h2>Jobs currently listed by sector</h2>
+      <div id="sector-bars" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = "";  // Same origin — FastAPI serves both backend and frontend
+const selectedSkills = new Set();
+
+async function apiFetch(url, opts={}) {
+  const res = await fetch(API + url, opts);
+  return res.json();
+}
+
+// ── Stats bar ────────────────────────────────────────────────────────────────
+async function loadStats() {
+  const data = await apiFetch("/api/stats/overview");
+  document.getElementById("s-jobs").textContent     = data.total_jobs;
+  document.getElementById("s-seekers").textContent  = data.total_seekers;
+  document.getElementById("s-training").textContent = data.total_training;
+}
+loadStats();
+
+// ── Tab switching ────────────────────────────────────────────────────────────
+function showTab(id, btn) {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  btn.classList.add("active");
+  if (id === "skills")   loadTraining();
+  if (id === "overview") loadOverview();
+}
+
+// ── Skill tags ───────────────────────────────────────────────────────────────
+function toggleSkill(el, skill) {
+  if (selectedSkills.has(skill)) {
+    selectedSkills.delete(skill);
+    el.className = "tag tag-gray";
+  } else {
+    selectedSkills.add(skill);
+    el.className = "tag tag-selected";
+  }
+}
+
+// ── Job Matcher ──────────────────────────────────────────────────────────────
+async function findJobs() {
+  const prov  = document.getElementById("m-prov").value;
+  const edu   = document.getElementById("m-edu").value;
+  const type  = document.getElementById("m-type").value;
+  const skills = [...selectedSkills].join(",");
+
+  document.getElementById("loading").style.display = "block";
+  document.getElementById("job-results").innerHTML = "";
+
+  const params = new URLSearchParams({ skills, province: prov, education: edu, job_type: type });
+  const jobs = await apiFetch("/api/jobs/match?" + params);
+  document.getElementById("loading").style.display = "none";
+
+  const box = document.getElementById("job-results");
+  if (!jobs.length) {
+    box.innerHTML = '<p class="empty">No matches found — try fewer filters or different skills.</p>';
+    return;
+  }
+
+  box.innerHTML = `<p style="font-size:.85rem;color:#555;margin-bottom:10px">Top ${jobs.length} matches for your profile</p>` +
+    jobs.map(j => `
+      <div class="result-job">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <h3>${j.title}</h3>
+            <p class="meta">${j.company} &bull; ${j.province}</p>
+          </div>
+          <span style="float:right;font-size:.8rem;background:#e5f5e0;color:#2d6a2d;padding:3px 8px;border-radius:20px">${j.match_score}%</span>
+        </div>
+        <div style="margin-top:6px">
+          <span class="tag tag-gray">${j.job_type}</span>
+          <span class="tag tag-blue">R${j.salary_min.toLocaleString()}–R${j.salary_max.toLocaleString()}/mo</span>
+          <span class="tag tag-amber">Min: ${j.min_edu}</span>
+        </div>
+        <p style="font-size:.8rem;color:#555;margin-top:6px">${j.description}</p>
+        <p style="font-size:.8rem;color:#185FA5;margin-top:4px">Contact: ${j.contact}</p>
+        <div class="score-bar"><div class="score-fill" style="width:${j.match_score}%"></div></div>
+      </div>
+    `).join("");
+}
+
+// ── Training Programs ────────────────────────────────────────────────────────
+async function loadTraining() {
+  const programs = await apiFetch("/api/training/");
+  const box = document.getElementById("training-list");
+  if (!programs.length) { box.innerHTML = '<p class="empty">No programs found.</p>'; return; }
+
+  box.innerHTML = programs.map(p => `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <h2>${p.title}</h2>
+          <p>${p.description}</p>
+        </div>
+        <span class="tag tag-blue" style="white-space:nowrap">${p.placement_rate}% placed</span>
+      </div>
+      <div style="margin-top:8px">
+        <span class="tag tag-gray">${p.duration_weeks} weeks</span>
+        <span class="tag tag-gray">${p.delivery}</span>
+        <span class="tag tag-green">${p.cost} — ${p.provider}</span>
+      </div>
+      <div style="height:6px;background:#e0e0e0;border-radius:3px;margin-top:8px">
+        <div style="height:100%;border-radius:3px;background:#1D9E75;width:${p.placement_rate}%"></div>
+      </div>
+      <a href="${p.apply_link}" target="_blank" style="font-size:.82rem;color:#185FA5;display:block;margin-top:8px">Apply / learn more →</a>
+    </div>
+  `).join("");
+}
+
+// ── Post a Job ───────────────────────────────────────────────────────────────
+async function postJob() {
+  const payload = {
+    title:      document.getElementById("p-title").value,
+    company:    document.getElementById("p-company").value,
+    province:   document.getElementById("p-prov").value,
+    sector:     document.getElementById("p-sector").value,
+    job_type:   document.getElementById("p-type").value,
+    salary_min: parseInt(document.getElementById("p-smin").value) || 0,
+    salary_max: parseInt(document.getElementById("p-smax").value) || 0,
+    min_edu:    document.getElementById("p-edu").value,
+    description: document.getElementById("p-desc").value,
+    contact:    document.getElementById("p-contact").value,
+  };
+
+  if (!payload.title || !payload.company || !payload.province) {
+    document.getElementById("post-result").innerHTML = '<p style="color:red;font-size:.85rem">Please fill in title, company, and province.</p>';
+    return;
+  }
+
+  const job = await apiFetch("/api/jobs/", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+
+  document.getElementById("post-result").innerHTML =
+    `<div class="alert-success">Job "${job.title}" posted successfully! ID: #${job.id}</div>`;
+  loadStats();
+}
+
+// ── Register Seeker ──────────────────────────────────────────────────────────
+async function registerSeeker() {
+  const payload = {
+    name:      document.getElementById("r-name").value,
+    email:     document.getElementById("r-email").value,
+    phone:     document.getElementById("r-phone").value,
+    province:  document.getElementById("r-prov").value,
+    education: document.getElementById("r-edu").value,
+    skills:    document.getElementById("r-skills").value,
+    job_type:  "Any",
+  };
+
+  if (!payload.name) {
+    document.getElementById("reg-result").innerHTML = '<p style="color:red;font-size:.85rem">Please enter your name.</p>';
+    return;
+  }
+
+  const s = await apiFetch("/api/seekers/", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+
+  document.getElementById("reg-result").innerHTML =
+    `<div class="alert-success">Profile created for ${s.name}! Your ID is #${s.id}.</div>`;
+  loadStats();
+}
+
+// ── SA Overview ──────────────────────────────────────────────────────────────
+async function loadOverview() {
+  const [stats, sectors] = await Promise.all([
+    apiFetch("/api/stats/overview"),
+    apiFetch("/api/stats/jobs-by-sector"),
+  ]);
+
+  const provData = Object.entries(stats.province_unemployment).sort((a,b) => b[1]-a[1]);
+  document.getElementById("prov-bars").innerHTML = provData.map(([p, pct]) => `
+    <div class="prov-row">
+      <span style="min-width:130px">${p}</span>
+      <div class="prov-bar-wrap"><div class="prov-bar" style="width:${(pct/50)*100}%"></div></div>
+      <span class="pct">${pct}%</span>
+    </div>
+  `).join("");
+
+  const maxSec = Math.max(...Object.values(sectors), 1);
+  document.getElementById("sector-bars").innerHTML = Object.entries(sectors)
+    .sort((a,b) => b[1]-a[1])
+    .map(([sec, cnt]) => `
+      <div class="prov-row">
+        <span style="min-width:130px">${sec}</span>
+        <div class="prov-bar-wrap"><div class="prov-bar" style="width:${(cnt/maxSec)*100}%;background:#1D9E75"></div></div>
+        <span class="pct">${cnt} jobs</span>
+      </div>
+    `).join("");
+}
+</script>
+</body>
+</html>
